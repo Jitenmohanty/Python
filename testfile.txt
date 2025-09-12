@@ -1,0 +1,2 @@
+Hello, this is Python writing to a file!
+Line 2: Python is awesome 🚀
