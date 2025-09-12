@@ -1,7 +1,7 @@
 from database import get_users_collection, get_todos_collection
 from models import UserCreate, TodoCreate
 from bson import ObjectId
-from auth import hash_password
+from auth import hash_password, verify_password
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,16 +33,11 @@ async def authenticate_user(username: str, password: str):
         return None
 
     user = await users_collection.find_one({"username": username})
-    if not user:
-        return None
-
-    from auth import verify_password
-    if not verify_password(password, user["password"]):
+    if not user or not verify_password(password, user["password"]):
         return None
 
     user["id"] = str(user["_id"])
     return user
-
 
 # -------------------
 # Todo CRUD
@@ -71,15 +66,12 @@ async def get_todos(owner_id: str):
     async for t in todos_collection.find({"owner_id": owner_id}):
         t["id"] = str(t["_id"])
         todos.append(t)
-
-    logger.info(f"Retrieved {len(todos)} todos for user: {owner_id}")
     return todos
 
 
 async def get_todo(todo_id: str, owner_id: str):
     todos_collection = get_todos_collection()
     if todos_collection is None:
-        logger.error("Cannot get todo - MongoDB not connected")
         return None
 
     todo = await todos_collection.find_one({"_id": ObjectId(todo_id), "owner_id": owner_id})
@@ -91,20 +83,19 @@ async def get_todo(todo_id: str, owner_id: str):
 async def update_todo(todo_id: str, data: dict, owner_id: str):
     todos_collection = get_todos_collection()
     if todos_collection is None:
-        logger.error("Cannot update todo - MongoDB not connected")
         return None
 
-    await todos_collection.update_one({"_id": ObjectId(todo_id), "owner_id": owner_id}, {"$set": data})
-    logger.info(f"Updated todo: {todo_id} for user: {owner_id}")
+    await todos_collection.update_one(
+        {"_id": ObjectId(todo_id), "owner_id": owner_id},
+        {"$set": data}
+    )
     return await get_todo(todo_id, owner_id)
 
 
 async def delete_todo(todo_id: str, owner_id: str):
     todos_collection = get_todos_collection()
     if todos_collection is None:
-        logger.error("Cannot delete todo - MongoDB not connected")
         return {"message": "Database not available"}
 
     await todos_collection.delete_one({"_id": ObjectId(todo_id), "owner_id": owner_id})
-    logger.info(f"Deleted todo: {todo_id} for user: {owner_id}")
     return {"message": "Todo deleted"}

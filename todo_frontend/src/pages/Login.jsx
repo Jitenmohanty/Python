@@ -22,13 +22,12 @@ export default function Login() {
         },
       });
 
-      login(res.data.access_token);
+      login(res.data.access_token); // save JWT
       navigate("/todos");
     } catch (err) {
       alert("Invalid credentials");
-  }
-};
-
+    }
+  };
 
   return (
     <div className="max-w-sm mx-auto mt-10">
@@ -40,6 +39,7 @@ export default function Login() {
           className="w-full p-2 border rounded"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          required
         />
         <input
           type="password"
@@ -47,6 +47,7 @@ export default function Login() {
           className="w-full p-2 border rounded"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          required
         />
         <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded">
           Login

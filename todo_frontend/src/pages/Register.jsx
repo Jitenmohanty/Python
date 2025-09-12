@@ -28,6 +28,7 @@ export default function Register() {
           className="w-full p-2 border rounded"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          required
         />
         <input
           type="password"
@@ -35,6 +36,7 @@ export default function Register() {
           className="w-full p-2 border rounded"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          required
         />
         <button type="submit" className="w-full bg-green-600 text-white py-2 rounded">
           Register
