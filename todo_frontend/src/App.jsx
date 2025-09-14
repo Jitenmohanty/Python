@@ -5,10 +5,12 @@ import Register from "./pages/Register";
 import TodoList from "./pages/TodoList";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
+import { TodoProvider } from "./context/TodoContext";
 
 export default function App() {
   return (
     <AuthProvider>
+      <TodoProvider>
       <Router>
         <Navbar />
         <div className="p-4">
@@ -27,6 +29,8 @@ export default function App() {
           </Routes>
         </div>
       </Router>
+      </TodoProvider>
+
     </AuthProvider>
   );
 }

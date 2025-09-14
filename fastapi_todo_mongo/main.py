@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
+from contextlib import asynccontextmanager
 import logging
 
 from models import UserCreate, UserOut, TodoCreate, TodoOut, Token
@@ -10,7 +11,16 @@ from auth import create_access_token, decode_access_token
 from database import get_users_collection, get_todos_collection
 
 logger = logging.getLogger(__name__)
-app = FastAPI(title="FastAPI Todo App with MongoDB")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    from database import init_db
+    await init_db()
+    yield
+    # Shutdown (if needed)
+
+app = FastAPI(title="FastAPI Todo App with MongoDB", lifespan=lifespan)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -25,11 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Startup event
-@app.on_event("startup")
-async def startup_event():
-    from database import init_db
-    await init_db()
+
 
 # JWT auth dependency
 async def get_current_user(token: str = Depends(oauth2_scheme)):

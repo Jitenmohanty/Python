@@ -1,61 +1,23 @@
-import { useEffect, useState } from "react";
-import API from "../api";
+import { useState } from "react";
+import { useTodos } from "../context/TodoContext";
 import Loader from "../components/Loader";
 
 export default function TodoList() {
-  const [todos, setTodos] = useState([]);
+  const { todos, loading, addTodo, updateTodo, deleteTodo } = useTodos();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [editingId, setEditingId] = useState(null);
-  const [loading, setLoading] = useState(false); // <-- loader state
-
-
-  const fetchTodos = async () => {
-     setLoading(true); // start loader
-    try {
-      const res = await API.get("/todos");
-      setTodos(res.data);
-    } catch (err) {
-      alert("Failed to fetch todos");
-    }finally{
-      setLoading(false)
-    }
-  };
-
-  useEffect(() => {
-    fetchTodos();
-  }, []);
 
   const handleAddOrEdit = async (e) => {
-    setLoading(true);
     e.preventDefault();
-    try {
-      if (editingId) {
-        await API.put(`/todos/${editingId}`, { title, description });
-        setEditingId(null);
-      } else {
-        await API.post("/todos", { title, description });
-      }
-      setTitle("");
-      setDescription("");
-      fetchTodos();
-    } catch (err) {
-      alert("Failed to save todo");
-    }finally{
-      setLoading(false);
+    if (editingId) {
+      await updateTodo(editingId, { title, description });
+      setEditingId(null);
+    } else {
+      await addTodo({ title, description });
     }
-  };
-
-  const handleDelete = async (id) => {
-    setLoading(true);
-    try {
-      await API.delete(`/todos/${id}`);
-      fetchTodos();
-    } catch (err) {
-      alert("Failed to delete todo");
-    }finally{
-      setLoading(false);
-    }
+    setTitle("");
+    setDescription("");
   };
 
   const handleEdit = (todo) => {
@@ -65,24 +27,16 @@ export default function TodoList() {
   };
 
   const toggleComplete = async (todo) => {
-    setLoading(true)
-    try {
-      await API.put(`/todos/${todo.id}`, {
-        title: todo.title,
-        description: todo.description,
-        completed: !todo.completed,
-      });
-      fetchTodos();
-    } catch (err) {
-      alert("Failed to update todo");
-    }finally{
-      setLoading(false)
-    }
+    await updateTodo(todo.id, {
+      title: todo.title,
+      description: todo.description,
+      completed: !todo.completed,
+    });
   };
 
   return (
     <div className="max-w-lg mx-auto mt-10">
-            {loading && <Loader />} {/* show loader when loading */}
+      {loading && <Loader />}
       <h2 className="text-2xl font-bold mb-4">Todo List</h2>
       <form onSubmit={handleAddOrEdit} className="space-y-2 mb-4">
         <input
@@ -138,7 +92,7 @@ export default function TodoList() {
                 Edit
               </button>
               <button
-                onClick={() => handleDelete(todo.id)}
+                onClick={() => deleteTodo(todo.id)}
                 className="px-2 py-1 bg-red-600 text-white rounded"
               >
                 Delete
