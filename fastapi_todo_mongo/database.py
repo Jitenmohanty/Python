@@ -19,7 +19,7 @@ todos_collection = None
 is_connected = False
 
 async def init_db():
-    """Initialize the database connection"""
+    """Initialize the database connection and create indexes"""
     global client, db, users_collection, todos_collection, is_connected
     try:
         client = AsyncIOMotorClient(MONGO_DETAILS, serverSelectionTimeoutMS=5000)
@@ -30,16 +30,38 @@ async def init_db():
         db = client.todo_db
         users_collection = db.users
         todos_collection = db.todos
-        logger.info(f"Using database: {db.name}")
+        
+        # Create indexes for better performance
+        await users_collection.create_index("username", unique=True)
+        await todos_collection.create_index("owner_id")  # Index for user-based queries
+        logger.info("✅ Database indexes created")
+        
         is_connected = True
     except Exception as e:
         logger.error(f"❌ Failed to connect to MongoDB: {e}")
         client = db = users_collection = todos_collection = None
         is_connected = False
 
-# Accessor functions
+# Accessor functions with connection check
 def get_users_collection():
+    if not is_connected:
+        logger.warning("⚠️  Database not connected - users collection unavailable")
+        return None
     return users_collection
 
 def get_todos_collection():
+    if not is_connected:
+        logger.warning("⚠️  Database not connected - todos collection unavailable")
+        return None
     return todos_collection
+
+# Optional: Add a connection status endpoint helper
+def get_db_status():
+    return {
+        "connected": is_connected,
+        "database": db.name if db else None,
+        "collections": {
+            "users": users_collection is not None,
+            "todos": todos_collection is not None
+        }
+    }

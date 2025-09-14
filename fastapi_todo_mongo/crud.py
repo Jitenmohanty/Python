@@ -17,15 +17,26 @@ async def create_user(user: UserCreate):
 
     existing = await users_collection.find_one({"username": user.username})
     if existing:
+        logger.warning(f"Username {user.username} already exists")
         return None
 
-    user_dict = {"username": user.username, "password": hash_password(user.password)}
-    result = await users_collection.insert_one(user_dict)
-    user_dict["id"] = str(result.inserted_id)
-    logger.info(f"Created new user: {user.username}")
-    return user_dict
-
-
+    try:
+        user_dict = {
+            "username": user.username, 
+            "password": hash_password(user.password)
+        }
+        result = await users_collection.insert_one(user_dict)
+        
+        # Return the user in the format expected by UserOut model
+        new_user = {
+            "id": str(result.inserted_id),
+            "username": user.username
+        }
+        logger.info(f"Created new user: {user.username} with ID: {new_user['id']}")
+        return new_user
+    except Exception as e:
+        logger.error(f"Error creating user: {e}")
+        return None
 async def authenticate_user(username: str, password: str):
     users_collection = get_users_collection()
     if users_collection is None:
@@ -36,48 +47,74 @@ async def authenticate_user(username: str, password: str):
     if not user or not verify_password(password, user["password"]):
         return None
 
-    user["id"] = str(user["_id"])
-    return user
+    # Return in UserOut format
+    return {
+        "id": str(user["_id"]),
+        "username": user["username"]
+    }
 
 # -------------------
 # Todo CRUD
 # -------------------
+# In create_todo function:
 async def create_todo(todo: TodoCreate, owner_id: str):
     todos_collection = get_todos_collection()
     if todos_collection is None:
-        logger.error("Cannot create todo - MongoDB not connected")
         return None
 
     todo_dict = todo.dict()
     todo_dict["owner_id"] = owner_id
     result = await todos_collection.insert_one(todo_dict)
-    todo_dict["id"] = str(result.inserted_id)
-    logger.info(f"Created new todo for user: {owner_id}")
-    return todo_dict
-
-
-async def get_todos(owner_id: str):
-    todos_collection = get_todos_collection()
-    if todos_collection is None:
-        logger.error("Cannot get todos - MongoDB not connected")
-        return []
-
-    todos = []
-    async for t in todos_collection.find({"owner_id": owner_id}):
-        t["id"] = str(t["_id"])
-        todos.append(t)
-    return todos
-
+    
+    # Return with id field instead of _id
+    created_todo = await todos_collection.find_one({"_id": result.inserted_id})
+    return {
+        "id": str(created_todo["_id"]),
+        "title": created_todo["title"],
+        "description": created_todo.get("description"),
+        "completed": created_todo.get("completed", False),
+        "owner_id": created_todo["owner_id"]
+    }
 
 async def get_todo(todo_id: str, owner_id: str):
     todos_collection = get_todos_collection()
     if todos_collection is None:
         return None
 
-    todo = await todos_collection.find_one({"_id": ObjectId(todo_id), "owner_id": owner_id})
-    if todo:
-        todo["id"] = str(todo["_id"])
-    return todo
+    try:
+        todo = await todos_collection.find_one({
+            "_id": ObjectId(todo_id), 
+            "owner_id": owner_id
+        })
+        if todo:
+            return {
+                "id": str(todo["_id"]),
+                "title": todo["title"],
+                "description": todo.get("description"),
+                "completed": todo.get("completed", False),
+                "owner_id": todo["owner_id"]
+            }
+        return None
+    except:
+        return None
+
+async def get_todos(owner_id: str):
+    todos_collection = get_todos_collection()
+    if todos_collection is None:
+        return []
+
+    todos = []
+    async for t in todos_collection.find({"owner_id": owner_id}):
+        # Convert _id to id for the response model
+        todo_data = {
+            "id": str(t["_id"]),
+            "title": t["title"],
+            "description": t.get("description"),
+            "completed": t.get("completed", False),
+            "owner_id": t["owner_id"]
+        }
+        todos.append(todo_data)
+    return todos
 
 
 async def update_todo(todo_id: str, data: dict, owner_id: str):

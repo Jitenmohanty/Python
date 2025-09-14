@@ -17,16 +17,15 @@ def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
 
 # JWT token creation
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
+def create_access_token(data: dict):
+    # Ensure the token contains the user ID
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-# JWT verification
 def decode_access_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload.get("sub")
+        user_id: str = payload.get("sub")
+        return user_id  # This will be used to filter todos
     except JWTError:
         return None
