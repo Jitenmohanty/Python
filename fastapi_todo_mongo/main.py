@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown (if needed)
 
-app = FastAPI(title="FastAPI Todo App with MongoDB", lifespan=lifespan)
+app = FastAPI(title="FastAPI Todo App with MongoDB", lifespan=lifespan) 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 

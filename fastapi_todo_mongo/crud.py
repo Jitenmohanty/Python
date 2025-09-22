@@ -62,7 +62,7 @@ async def create_todo(todo: TodoCreate, owner_id: str):
     if todos_collection is None:
         return None
 
-    todo_dict = todo.dict()
+    todo_dict = todo.model_dump()
     todo_dict["owner_id"] = owner_id
     result = await todos_collection.insert_one(todo_dict)
     

@@ -1,0 +1,4 @@
+# Add these to your requirements.txt file:
+Django==4.2.7
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
